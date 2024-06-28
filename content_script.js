@@ -15,7 +15,9 @@ function processPosterContainer(container) {
   }
 
   const releaseYear = posterDiv.getAttribute('data-film-release-year');
-  if (releaseYear) {
+  const letterboxdLink = posterDiv.querySelector('a')?.href;
+
+  if (releaseYear && letterboxdLink) {
     console.log(`Processing poster: ${movieTitle}, release year: ${releaseYear}`);
 
     // Create container div for poster and year
@@ -41,8 +43,8 @@ function processPosterContainer(container) {
     copyButton.className = 'copy-link-button';
     copyButton.textContent = 'Copy Link';
     copyButton.onclick = () => {
-      navigator.clipboard.writeText(yearLink.href).then(() => {
-        console.log(`Copied link to clipboard: ${yearLink.href}`);
+      navigator.clipboard.writeText(letterboxdLink).then(() => {
+        console.log(`Copied link to clipboard: ${letterboxdLink}`);
       }).catch(err => {
         console.error('Failed to copy link: ', err);
       });
@@ -53,7 +55,7 @@ function processPosterContainer(container) {
     container.appendChild(containerDiv);
     container.style.position = 'relative'; // Ensure relative positioning for absolute overlay
   } else {
-    console.log(`No release year found for poster: ${movieTitle}`);
+    console.log(`No release year or Letterboxd link found for poster: ${movieTitle}`);
   }
 }
 
@@ -81,7 +83,7 @@ function waitForLazyElements(selector, callback) {
 
 // Wait for all poster containers to be loaded, including lazy-loaded ones
 waitForLazyElements('.poster-container', (posterContainer) => {
-  console.log(`Found a new poster container`);
+  console.log('Found a new poster container');
 
   // Process the newly found poster container
   processPosterContainer(posterContainer);
