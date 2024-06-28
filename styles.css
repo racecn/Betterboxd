@@ -1,0 +1,83 @@
+/* Base styles for the poster-with-year container */
+.poster-with-year {
+  position: relative;
+  background-color: #000; /* Ensure a dark background for high contrast */
+  color: #fff; /* Ensure white text for high contrast */
+}
+
+/* Styles for the year overlay link */
+.poster-with-year .year-overlay {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background-color: rgba(0, 0, 0, 0.85); /* Ensure a dark semi-transparent background */
+  padding: 5px;
+  border-radius: 3px;
+  color: #fff; /* White text for high contrast */
+  font-size: 14px;
+  text-decoration: none;
+}
+
+/* Hover state for better visibility */
+.poster-with-year .year-overlay:hover {
+  background-color: rgba(0, 0, 0, 0.95); /* Darker background on hover */
+}
+
+/* Additional styles to ensure text contrast and readability */
+body {
+  background-color: #ffffff; /* White background */
+  color: #000000; /* Black text for high contrast */
+  font-family: Arial, sans-serif; /* Ensure a readable font */
+  font-size: 16px; /* Increase base font size for readability */
+}
+
+/* Ensure sufficient contrast for headings */
+h1, h2, h3, h4, h5, h6 {
+  color: #000000; /* Black text for high contrast */
+}
+
+/* Link styles */
+a {
+  color: #1a0dab; /* Ensure links are distinguishable and have sufficient contrast */
+  text-decoration: underline; /* Underline links for visibility */
+}
+
+a:hover, a:focus {
+  color: #d40000; /* Ensure hover/focus state has sufficient contrast */
+}
+
+/* Button styles */
+button {
+  background-color: #007bff; /* High contrast button color */
+  color: #ffffff; /* White text for high contrast */
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+button:hover, button:focus {
+  background-color: #0056b3; /* Ensure hover/focus state has sufficient contrast */
+}
+
+/* Form input styles */
+input, select, textarea {
+  border: 2px solid #000000; /* High contrast border */
+  padding: 10px;
+  font-size: 16px;
+  color: #000000; /* Black text for high contrast */
+  background-color: #ffffff; /* White background for high contrast */
+}
+
+/* Ensure sufficient spacing and line height for readability */
+p {
+  line-height: 1.5; /* Increase line height for readability */
+  margin-bottom: 1em; /* Ensure spacing between paragraphs */
+}
+
+/* Ensure focus styles for keyboard navigation */
+:focus {
+  outline: 3px solid #ffcc00; /* High visibility outline for focused elements */
+  outline-offset: 2px;
+}

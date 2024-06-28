@@ -1,0 +1,19 @@
+{
+  "manifest_version": 2,
+  "name": "Letterboxd Year Display",
+  "version": "1.0",
+  "description": "Displays the release year on the poster of every movie on Letterboxd.",
+  "icons": {
+    "48": "icons/icon.png"
+  },
+  "permissions": [
+    "activeTab"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["*://letterboxd.com/*"],
+      "js": ["content_script.js"],
+       "run_at": "document_idle"
+    }
+  ]
+}
