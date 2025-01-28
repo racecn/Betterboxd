@@ -1,82 +1,45 @@
-/* Base styles for the poster-with-year container */
 .poster-with-year {
-  position: relative;
-  background-color: #000;
-  color: #fff;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 }
 
-/* Styles for the year overlay link */
-.poster-with-year .year-overlay {
+.year-overlay {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  text-decoration: none;
+  z-index: 2;
+}
+
+.copy-link-button {
   position: absolute;
   bottom: 10px;
-  left: 10px;
-  background-color: rgba(0, 0, 0, 0.85);
-  padding: 5px;
-  border-radius: 3px;
-  color: #fff;
-  font-size: 14px;
-  text-decoration: none;
-}
-
-.poster-with-year .year-overlay:hover {
-  background-color: rgba(0, 0, 0, 0.95);
-}
-
-/* Body and text styles for better readability */
-body {
-  background-color: #ffffff;
-  color: #000000;
-  font-family: Arial, sans-serif;
-  font-size: 16px;
-}
-
-/* Ensure sufficient contrast for headings */
-h1, h2, h3, h4, h5, h6 {
-  color: #000000;
-}
-
-/* Link styles */
-a {
-  color: #1a0dab;
-  text-decoration: underline;
-}
-
-a:hover, a:focus {
-  color: #d40000;
-}
-
-/* Button styles */
-button {
-  background-color: #007bff;
-  color: #ffffff;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
   border: none;
-  padding: 10px 20px;
-  border-radius: 5px;
-  font-size: 16px;
+  padding: 4px 8px;
+  border-radius: 4px;
   cursor: pointer;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 2;
 }
 
-button:hover, button:focus {
-  background-color: #0056b3;
+.poster-container:hover .copy-link-button {
+  opacity: 1;
 }
 
-/* Form input styles */
-input, select, textarea {
-  border: 2px solid #000000;
-  padding: 10px;
-  font-size: 16px;
-  color: #000000;
-  background-color: #ffffff;
-}
-
-/* Ensure sufficient spacing and line height for readability */
-p {
-  line-height: 1.5;
-  margin-bottom: 1em;
-}
-
-/* Ensure focus styles for keyboard navigation */
-:focus {
-  outline: 3px solid #ffcc00;
-  outline-offset: 2px;
+.copy-link-button:hover {
+  background: rgba(0, 0, 0, 0.9);
 }
