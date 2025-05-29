@@ -1,72 +1,169 @@
-// ==UserScript==
-// @name         Letterboxd Poster Helper (Lazy-Load Aware, Export Icon)
-// @namespace    your.namespace.here
-// @version      1.0
-// @description  Adds a year overlay with an export icon to open 1337x search
-// @match        *://letterboxd.com/*
-// @grant        none
-// ==/UserScript==
-
 (() => {
   // Prevent multiple injections
-  if (window.hasRun) return;
+  if (window.hasRun) {
+    return;
+  }
   window.hasRun = true;
 
-  // ----------------------------------
-  // Configuration
-  // ----------------------------------
-  const POSTER_SELECTOR = '.poster-container';
-  // Use the narrowest reliable container that wraps .poster-container elements if possible
-  const CONTAINER_SELECTOR = 'body';
-  
-  // Debounce intervals
-  const DEBOUNCE_DELAY = 200;       // ms to wait before processing new/updated posters
-  const URL_CHECK_INTERVAL = 1000;  // ms for checking URL changes (SPAs)
+  // Debugging function
+  function debugLog(...args) {
+    console.log('[Letterboxd Export] ', ...args);
+  }
 
-  let lastUrl = location.href;
-  let observer = null;
-  let mutationTimeout = null;
+  // Get correct storage API
+  function getStorageArea() {
+    return (typeof browser !== 'undefined' && browser.storage?.local) 
+      || (typeof chrome !== 'undefined' && chrome.storage?.local);
+  }
 
-  // Queue for newly added/updated posters
-  const newPosterQueue = new Set();
+  // URL generation function
+  function getSearchUrl(title, year, mode) {
+    const query = `${title} ${year}`;
+    const encodedQuery = encodeURIComponent(query);
 
-  // ----------------------------------
-  // Processing each poster container
-  // ----------------------------------
-  function processPosterContainer(container) {
+    debugLog('Generating search URL', { title, year, mode });
+
+    switch(mode) {
+      case 'category':
+        return `https://1337x.to/category-search/${encodedQuery}/Movies/1/`;
+      case 'search':
+        return `https://1337x.to/search/${encodedQuery}/1/`;
+      default:
+        return `https://www.google.com/search?q=${encodedQuery}`;
+    }
+  }
+
+  // Global settings object
+  const settingsState = {
+    showExportButton: true,
+    searchMode: 'search',
+    overlayOpacity: 70
+  };
+
+  // Function to update all export links
+  function updateAllExportLinks() {
+    debugLog('Updating all export links', settingsState);
+
+    // Select all export links
+    const exportLinks = document.querySelectorAll('.export-link');
+    
+    exportLinks.forEach(link => {
+      const title = link.dataset.movieTitle;
+      const year = link.dataset.releaseYear;
+
+      if (title && year) {
+        // Update href
+        const newHref = getSearchUrl(title, year, settingsState.searchMode);
+        link.href = newHref;
+        debugLog('Updated link href', { title, year, newHref });
+
+        // Toggle visibility
+        link.style.display = settingsState.showExportButton ? 'inline-block' : 'none';
+      }
+    });
+  }
+
+  // Initialize settings
+  async function initializeSettings() {
+    const storageArea = getStorageArea();
+    if (!storageArea) {
+      debugLog('No storage area found');
+      return;
+    }
+
     try {
-      // Skip if already processed
-      if (container.querySelector('.poster-controls')) return;
+      const stored = await storageArea.get([
+        'showExportButton',
+        'searchMode',
+        'overlayOpacity'
+      ]);
 
-      // Find the actual poster div
-      const posterDiv = container.querySelector('div[class*="film-poster"]');
-      if (!posterDiv) return;
+      // Update settings
+      settingsState.showExportButton = stored.showExportButton !== false;
+      settingsState.searchMode = stored.searchMode || 'search';
+      settingsState.overlayOpacity = stored.overlayOpacity ?? 70;
 
-      // Extract film data
-      const movieTitle  = posterDiv.getAttribute('data-film-name');
-      let   releaseYear = posterDiv.getAttribute('data-film-release-year');
-      const filmSlug    = posterDiv.getAttribute('data-film-slug');
+      debugLog('Initial settings loaded', settingsState);
 
-      // If releaseYear missing, try frame-title
-      if (!releaseYear) {
-        const frameTitleSpan = posterDiv.querySelector('.frame-title');
-        if (frameTitleSpan) {
-          const match = frameTitleSpan.textContent.match(/\((\d{4})\)/);
-          if (match) {
-            releaseYear = match[1];
+      // Set up storage change listener
+      storageArea.onChanged.addListener((changes, areaName) => {
+        if (areaName === 'local') {
+          let updated = false;
+
+          if ('showExportButton' in changes) {
+            settingsState.showExportButton = changes.showExportButton.newValue;
+            updated = true;
+          }
+          if ('searchMode' in changes) {
+            settingsState.searchMode = changes.searchMode.newValue;
+            updated = true;
+          }
+          if ('overlayOpacity' in changes) {
+            settingsState.overlayOpacity = changes.overlayOpacity.newValue;
+            updated = true;
+          }
+
+          if (updated) {
+            debugLog('Settings changed', settingsState);
+            updateAllExportLinks();
           }
         }
-      }
+      });
 
-      // If still missing data, skip
-      if (!movieTitle || !releaseYear) {
-        console.debug(`Poster missing data. Title=${movieTitle}, Year=${releaseYear}`);
+      // Initial update
+      updateAllExportLinks();
+    } catch (err) {
+      debugLog('Error initializing settings', err);
+    }
+  }
+
+  // Poster processing function
+  function processPoster(container) {
+    try {
+      // Skip if within certain list types
+      if (container.closest('section.list.-overlapped, section.list.-stacked')) {
         return;
       }
 
-      console.debug(`Processing poster: ${movieTitle} (${releaseYear})`);
+      // Remove existing controls
+      const existingControls = container.querySelector('.poster-controls');
+      if (existingControls) {
+        existingControls.remove();
+      }
 
-      // Create overlay container
+    // Extract movie data
+    let movieTitle = container.getAttribute('data-film-name');
+    let releaseYear;
+
+    // Primary method: extract year from .frame-title (e.g., "Death Race 2000 (1975)")
+    const frameTitleSpan = container.querySelector('.frame-title');
+    if (frameTitleSpan) {
+      const match = frameTitleSpan.textContent.match(/\((\d{4})\)/);
+      if (match) {
+        releaseYear = match[1];
+      }
+    }
+
+    // Fallback 1: extract from data-film-slug
+    if (!releaseYear) {
+      releaseYear = container.getAttribute('data-film-slug')?.match(/\d{4}$/)?.[0];
+    }
+
+    // Fallback 2: try poster div attributes
+    if (!movieTitle || !releaseYear) {
+      const posterDiv = container.querySelector('div[class*="film-poster"]');
+      if (posterDiv) {
+        movieTitle = movieTitle || posterDiv.getAttribute('data-film-name');
+        releaseYear = releaseYear || posterDiv.getAttribute('data-film-release-year');
+      }
+    }
+
+    // Validate required data
+    if (!movieTitle || !releaseYear) {
+      return;
+    }
+
+      // Create controls container
       const controlsDiv = document.createElement('div');
       controlsDiv.className = 'poster-controls';
       Object.assign(controlsDiv.style, {
@@ -76,10 +173,10 @@
         width: '100%',
         height: '100%',
         zIndex: '2',
-        pointerEvents: 'none', // let normal interactions through by default
+        pointerEvents: 'none'
       });
 
-      // Create a small container for the year + export icon
+      // Create info container
       const infoContainer = document.createElement('div');
       Object.assign(infoContainer.style, {
         position: 'absolute',
@@ -89,133 +186,96 @@
         flexFlow: 'row nowrap',
         alignItems: 'center',
         gap: '4px',
-        background: 'rgba(0,0,0,0.7)',
+        background: `rgba(0, 0, 0, ${settingsState.overlayOpacity / 100})`, 
         color: '#fff',
         padding: '2px 5px',
-        pointerEvents: 'auto', // re-enable pointer events in this area
+        pointerEvents: 'auto',
       });
       controlsDiv.appendChild(infoContainer);
 
-      // Year as plain text
+      // Year text
       const yearSpan = document.createElement('span');
       yearSpan.textContent = releaseYear;
       infoContainer.appendChild(yearSpan);
 
-      // Export icon button (opens 1337x link in new tab)
-      const exportIcon = document.createElement('button');
-      exportIcon.textContent = '↗'; // You can change this to an SVG or Unicode symbol you prefer
-      Object.assign(exportIcon.style, {
-        background: 'transparent',
-        color: '#fff',
-        border: 'none',
-        padding: '0',
-        cursor: 'pointer',
-        fontSize: '1rem',
-      });
+      // Export button
+      if (settingsState.showExportButton) {
+        const exportBtn = document.createElement('a');
+        exportBtn.textContent = '↗';
+        exportBtn.className = 'export-link';
+        Object.assign(exportBtn.style, {
+          background: 'transparent',
+          color: '#fff', 
+          border: 'none',
+          padding: '0',
+          cursor: 'pointer',
+          fontSize: '1.3rem',
+          textDecoration: 'none',
+          display: 'inline-block'
+        });
 
-      // Build the 1337x URL
-      const torrentSearchUrl = `https://1337x.to/search/${encodeURIComponent(`${movieTitle} ${releaseYear}`)}/1/`;
-      exportIcon.onclick = (e) => {
-        e.stopPropagation();  // so we don’t trigger any underlying UI
-        window.open(torrentSearchUrl, '_blank', 'noopener');
-      };
-      infoContainer.appendChild(exportIcon);
+        // Set data attributes and href
+        exportBtn.dataset.movieTitle = movieTitle;
+        exportBtn.dataset.releaseYear = releaseYear;
+        exportBtn.href = getSearchUrl(movieTitle, releaseYear, settingsState.searchMode);
+        
+        exportBtn.target = '_blank';
+        exportBtn.rel = 'noopener noreferrer';
 
-      // Ensure container is positioned relative
+        infoContainer.appendChild(exportBtn);
+      }
+
+      // Position and append
       container.style.position = 'relative';
       container.appendChild(controlsDiv);
     } catch (err) {
-      console.error('Error processing poster container:', err);
+      debugLog('Error processing poster', err);
     }
   }
 
-  // ----------------------------------
-  // Mutation Observer callback
-  // ----------------------------------
-  function handleMutations(mutations) {
-    let foundSomething = false;
-
-    for (const mutation of mutations) {
-      // 1) Newly added nodes
-      if (mutation.type === 'childList') {
-        for (const node of mutation.addedNodes) {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            if (node.matches?.(POSTER_SELECTOR)) {
-              newPosterQueue.add(node);
-              foundSomething = true;
-            }
-            const nested = node.querySelectorAll?.(POSTER_SELECTOR);
-            nested?.forEach((elem) => {
-              newPosterQueue.add(elem);
-              foundSomething = true;
-            });
-          }
-        }
-      }
-
-      // 2) Attribute changes (e.g., lazy load class changes) on .poster-container
-      if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-        const target = mutation.target;
-        if (target.nodeType === Node.ELEMENT_NODE && target.matches?.(POSTER_SELECTOR)) {
-          newPosterQueue.add(target);
-          foundSomething = true;
-        }
-      }
-    }
-
-    if (foundSomething) {
-      clearTimeout(mutationTimeout);
-      mutationTimeout = setTimeout(() => {
-        newPosterQueue.forEach(processPosterContainer);
-        newPosterQueue.clear();
-      }, DEBOUNCE_DELAY);
-    }
-  }
-
-  // ----------------------------------
-  // Initialize MutationObserver
-  // ----------------------------------
-  function initObserver() {
-    observer?.disconnect();
-
-    const container = document.querySelector(CONTAINER_SELECTOR) || document.body;
-    observer = new MutationObserver(handleMutations);
-    observer.observe(container, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['class'],
-    });
+  // Poster detection and processing
+  function initPosterProcessing() {
+    const posterSelectors = [
+      '.poster-container',
+      '.react-component.poster.film-poster'
+    ];
 
     // Process existing posters
-    container.querySelectorAll(POSTER_SELECTOR).forEach(processPosterContainer);
-  }
+    posterSelectors.forEach(selector => {
+      document.querySelectorAll(selector).forEach(processPoster);
+    });
 
-  // ----------------------------------
-  // Detect URL changes (SPAs)
-  // ----------------------------------
-  function watchUrlChanges() {
-    setInterval(() => {
-      if (location.href !== lastUrl) {
-        lastUrl = location.href;
-        console.debug('URL changed, re-initializing observer...');
-        initObserver();
+    // Set up mutation observer
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === 'childList') {
+          mutation.addedNodes.forEach(node => {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              posterSelectors.forEach(selector => {
+                if (node.matches?.(selector)) {
+                  processPoster(node);
+                }
+                node.querySelectorAll?.(selector).forEach(processPoster);
+              });
+            }
+          });
+        }
       }
-    }, URL_CHECK_INTERVAL);
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
   }
 
-  // ----------------------------------
-  // Start everything
-  // ----------------------------------
-  function init() {
-    console.debug('Lazy-Load Aware Content Script (Export Icon) initializing...');
-    initObserver();
-    watchUrlChanges();
+  // Initialize everything
+  async function init() {
+    debugLog('Initializing script');
+    await initializeSettings();
+    initPosterProcessing();
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  // Run initialization
+  init();
 })();

@@ -1,69 +1,76 @@
-document.addEventListener('DOMContentLoaded', function() {
-    const lightModeCheckbox = document.getElementById('lightModeCheckbox');
-  
-    // Load current setting
-    browser.storage.local.get('lightModeSetting').then(result => {
-      lightModeCheckbox.checked = result.lightModeSetting || false;
-      applyTheme(result.lightModeSetting); // Apply theme based on stored setting
-    }).catch(error => {
-      console.error('Error loading setting:', error);
-    });
-  
-    // Save setting when light mode checkbox changes
-    lightModeCheckbox.addEventListener('change', function() {
-      const isChecked = this.checked;
-      browser.storage.local.set({ lightModeSetting: isChecked }).then(() => {
-        console.log('Light mode setting saved:', isChecked);
-        applyTheme(isChecked); // Apply theme immediately
-      }).catch(error => {
-        console.error('Error saving setting:', error);
-      });
-    });
-  
-    // Function to apply light or dark theme based on checkbox
-    function applyTheme(isLightMode) {
-      const css = `
-        :root {
-          --background: ${isLightMode ? '#fff' : '#14181c'};
-          --text-color: ${isLightMode ? '#333' : '#fff'};
-          --link-color: ${isLightMode ? '#0078D4' : '#1FBFEC'};
-          --button-color: ${isLightMode ? '#0078D4' : '#1FBFEC'};
-          --button-text-color: ${isLightMode ? '#fff' : '#333'};
-          /* Add more variables and their values as needed */
-        }
-  
-        body {
-          background-color: var(--background-color) !important;
-          color: var(--text-color) !important;
-        }
-  
-        a {
-          color: var(--link-color) !important;
-        }
-  
-        button {
-          background-color: var(--button-color) !important;
-          color: var(--button-text-color) !important;
-        }
+(() => {
+  // HTML elements
+  const showExportCheckbox = document.getElementById('show-export');
+  const searchModeSelect   = document.getElementById('search-mode');
+  const overlayOpacity     = document.getElementById('overlay-opacity');
+  const opacityValue       = document.getElementById('opacity-value');
 
-        .content {
-            background-color: var(--background-color) !important;
-            color: var(--text-color) !important;
-        }
+  // 1. Load settings from storage
+  const defaults = {
+    showExportButton: true,
+    searchMode: 'search',  
+    overlayOpacity: 70       // from 0 to 100
+  };
 
-        .site-body {
-          background: var(--background-color) !important;
-          color: var(--text-color) !important;}
-        
-        /* Add more CSS rules to override Letterboxd styles */
-      `;
+  // Try loading from storage
+  async function initializeSettings() {
+    try {
+      // Log the storage API being used
+      console.log('Storage API:', browser.storage ? 'browser.storage' : 'chrome.storage');
+
+      const stored = await browser.storage.local.get(Object.keys(defaults));
       
-      browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
-        const tabId = tabs[0].id;
-        browser.tabs.insertCSS(tabId, { code: css });
-      }).catch(error => {
-        console.error('Error inserting CSS:', error);
+      // Log retrieved stored values
+      console.log('Stored values:', stored);
+
+      const settings = { ...defaults, ...stored };
+      
+      // Log final settings
+      console.log('Final settings:', settings);
+
+      // 2. Initialize UI with current settings
+      showExportCheckbox.checked = settings.showExportButton;
+      searchModeSelect.value     = settings.searchMode;
+      overlayOpacity.value       = settings.overlayOpacity.toString();
+      opacityValue.textContent   = settings.overlayOpacity.toString();
+
+      // 3. Set up event listeners
+      // When checkbox toggles
+      showExportCheckbox.addEventListener('change', () => {
+        settings.showExportButton = showExportCheckbox.checked;
+        saveSettings(settings);
       });
+
+      // When user changes the search mode
+      searchModeSelect.addEventListener('change', () => {
+        settings.searchMode = searchModeSelect.value;
+        saveSettings(settings);
+      });
+
+      // When slider changes
+      overlayOpacity.addEventListener('input', () => {
+        settings.overlayOpacity = parseInt(overlayOpacity.value, 10);
+        opacityValue.textContent = settings.overlayOpacity.toString();
+        saveSettings(settings);
+      });
+    } catch (err) {
+      console.error('Error initializing settings:', err);
     }
-  });
-  
+  }
+
+  // 4. Save function
+  function saveSettings(settings) {
+    console.log('Saving settings:', settings);
+    
+    browser.storage.local.set(settings)
+      .then(() => {
+        console.log('Settings saved successfully');
+      })
+      .catch(err => {
+        console.error('Failed to save settings', err);
+      });
+  }
+
+  // Initialize settings when the popup loads
+  initializeSettings();
+})();

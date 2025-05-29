@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Poster Helper Settings</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      min-width: 200px;
+      margin: 10px;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      margin: 5px 0;
+    }
+    label {
+      margin-right: 8px;
+    }
+    select, input[type="checkbox"], input[type="range"] {
+      margin-left: auto;
+    }
+    .slider-value {
+      min-width: 30px;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <h2>betterboxd settings</h2>
+
+  <!-- Show/hide export button -->
+  <div class="row">
+    <label for="show-export">Show Export Button</label>
+    <input type="checkbox" id="show-export" />
+  </div>
+
+  <!-- Choose link style -->
+  <div class="row">
+    <label for="search-mode">1337x Link Style</label>
+    <select id="search-mode">
+      <option value="search">/search/TITLE/1/</option>
+      <option value="category">/category-search/TITLE/Movies/1/</option>
+      <option>Google Search</option>
+
+    </select>
+  </div>
+
+  <!-- Adjust overlay opacity (for example) -->
+  <div class="row">
+    <label for="overlay-opacity">Overlay Opacity</label>
+    <input type="range" id="overlay-opacity" min="0" max="100" value="70" />
+    <span class="slider-value" id="opacity-value">70</span>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,19 +1,29 @@
 {
   "manifest_version": 2,
-  "name": "Letterboxd Year Display",
-  "version": "1.0",
-  "description": "Displays the release year on the poster of every movie on Letterboxd.",
+  "name": "Betterboxd",
+  "version": "1.1",
+  "description": "Displays the release year on each Letterboxd poster, with optional settings in a popup.",
   "icons": {
     "48": "icons/icon.png"
   },
   "permissions": [
-    "activeTab"
+    "activeTab",
+    "storage"
   ],
+
+  "browser_action": {
+    "default_icon": "icons/icon.png",
+    "default_title": "Betterboxd",
+    "default_popup": "popup.html"
+  },
+
   "content_scripts": [
     {
-      "matches": ["*://letterboxd.com/*"],
+      "matches": [
+        "*://letterboxd.com/*"
+      ],
       "js": ["content_script.js"],
-       "run_at": "document_idle"
+      "run_at": "document_idle"
     }
   ]
 }
